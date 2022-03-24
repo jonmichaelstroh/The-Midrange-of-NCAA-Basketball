@@ -1,0 +1,364 @@
+---
+title: "A Couple of NCAA Shooting Thoughts"
+author: '@jonmichaelstroh'
+date: "`r Sys.Date()`"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+## A Couple of NCAA Shooting Thoughts ##
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE, 
+                      echo = TRUE, dpi = 300, cache.lazy = FALSE,
+                      tidy = "styler")
+```
+
+### Load Data ###
+
+We will use the gamezoneR package, an interface that scraps College Basketball Play by Play data from Stats LLC GameZone, including shot location data.
+
+```{r load libraries}
+library(tidyverse)
+library(dplyr)
+library(gamezoneR)
+library(knitr)
+library(kableExtra)
+library(rpivotTable)
+```
+
+Here we just find all play by play data for 2021-22:
+
+
+We wish to analyze the midrange shooting landscape of college basketball and how it compares to the pros.  To ensure we analyze the highest level of college basketball, we will only analyze games between two Power 6 teams (Conferences: Big Ten, ACC, SEC, Big 12, Pac-12, Big East).
+
+```{r identify Power 6 teams}
+bigten <- c("Michigan", "Purdue", "Iowa", "Michigan State", "Ohio State", "Indiana", "Maryland", "Rutgers", "Minnesota", "Penn State", "Nebraska", "Northwestern", "Illinois", "Wisconsin")
+
+acc <- c("Virginia", "Florida State", "Virginia Tech", "Clemson", "North Carolina", "Syracuse", "Louisville", "North Carolina State", "Duke", "Notre Dame", "Pittsburgh", "Miami (FL)", "Wake Forest", "Boston College")
+
+big12 <- c("Oklahoma", "Oklahoma State", "Baylor", "Texas Tech", "Iowa State", "West Virginia", "Kansas State", "Texas", "Texas Christian", "Kansas")
+
+bigeast <- c("Butler", "Creighton", "DePaul", "Georgetown", "Marquette", "Providence", "Seton Hall", "St. John's", "UConn", "Villanova", "Xavier")
+
+pac12 <- c("Oregon", "Oregon State", "Utah", "Washington", "UCLA", "USC", "Arizona State", "Washington State", "Stanford", "California", "Arizona", "Colorado")
+
+sec <- c("Georgia", "Alabama", "Auburn", "Ole Miss", "Tennessee", "Mississippi State", "Florida", "Kentucky", "Texas A&M", "LSU", "Arkansas", "South Carolina", "Missouri", "Vanderbilt")
+```
+
+```{r power six teams}
+power6 <- c(bigten, acc, big12, bigeast, pac12, sec)
+```
+
+We need to decide a season, and we'll start by analyzing 2021-22.
+```{r}
+season <- '2021-22'
+```
+
+Unfortunately, the gamezoneR package only allows scraping a master schedule for individual dates.  This doesn't help too much considering we wish for seasons worth of data.  Thus, to scrap the schedules for Power 6 teams, we will have to brute force scrape every individual team schedule and combine. Again, we only wish to include games in which two Power 6 teams are playing
+
+```{r scrap schedules for power 6 teams, include= FALSE}
+#bigten
+for (i in bigten){
+  assign(paste(i, '_schedule', sep = ""),  gamezoneR::get_team_schedule(i, season = season) %>% filter(is.na(home_total)== FALSE) %>% filter(home %in% power6 & away %in% power6))
+}
+
+bigten_schedule <- multiFull <- merge(merge(merge(merge(merge(merge(merge(merge(merge(merge(merge(merge(merge(
+  `Wisconsin_schedule`,
+  `Michigan_schedule`, all = TRUE),
+  `Purdue_schedule`, all = TRUE),
+  `Iowa_schedule`, all = TRUE),
+  `Illinois_schedule`, all = TRUE),
+  `Michigan State_schedule`, all = TRUE),
+  `Ohio State_schedule`, all = TRUE),
+  `Indiana_schedule`, all = TRUE),
+  `Maryland_schedule`, all = TRUE),
+  `Rutgers_schedule`, all = TRUE),
+  `Minnesota_schedule`, all = TRUE),
+  `Penn State_schedule`, all = TRUE),
+  `Nebraska_schedule`, all = TRUE),
+  `Northwestern_schedule`, all = TRUE)
+
+#acc
+for (i in acc){
+  assign(paste(i, '_schedule', sep = ""),  gamezoneR::get_team_schedule(i, season = season) %>% filter(is.na(home_total)== FALSE) %>% filter(home %in% power6 & away %in% power6))
+}
+
+
+
+acc_schedule <- multiFull <- merge(merge(merge(merge(merge(merge(merge(merge(merge(merge(merge(merge(merge(
+  `Virginia_schedule` ,
+  `Florida State_schedule`, all = TRUE),
+  `Virginia Tech_schedule`, all = TRUE),
+  `Clemson_schedule`, all = TRUE),
+  `North Carolina_schedule`, all = TRUE),
+  `Syracuse_schedule`, all = TRUE),
+  `Louisville_schedule`, all = TRUE),
+  `North Carolina State_schedule`, all = TRUE),
+  `Duke_schedule`, all = TRUE),
+  `Notre Dame_schedule`, all = TRUE),
+  `Pittsburgh_schedule`, all = TRUE),
+  `Miami (FL)_schedule`, all = TRUE),
+  `Wake Forest_schedule`, all = TRUE),
+  `Boston College_schedule`, all = TRUE)
+
+#big12
+for (i in big12){
+  assign(paste(i, '_schedule', sep = ""),  gamezoneR::get_team_schedule(i, season = season) %>% filter(is.na(home_total)== FALSE) %>% filter(home %in% power6 & away %in% power6))
+}
+
+big12_schedule <- multiFull <- merge(merge(merge(merge(merge(merge(merge(merge(merge(
+  `Oklahoma_schedule`,
+ `Oklahoma State_schedule`, all = TRUE),
+  `Baylor_schedule`, all = TRUE),
+  `Texas Tech_schedule`, all = TRUE),
+  `Iowa State_schedule`, all = TRUE),
+  `West Virginia_schedule`, all = TRUE),
+  `Kansas State_schedule`, all = TRUE),
+  `Texas_schedule`, all = TRUE),
+`Texas Christian_schedule`, all = TRUE),
+  `Kansas_schedule`, all = TRUE)
+
+#bigeast
+for (i in bigeast){
+  assign(paste(i, '_schedule', sep = ""),  gamezoneR::get_team_schedule(i, season = season) %>% filter(is.na(home_total)== FALSE) %>% filter(home %in% power6 & away %in% power6))
+}
+
+bigeast_schedule <- multiFull <- merge(merge(merge(merge(merge(merge(merge(merge(merge(merge(
+  `Butler_schedule`,
+ `Creighton_schedule`, all = TRUE),
+  `DePaul_schedule`, all = TRUE),
+`Georgetown_schedule`, all = TRUE),
+  `Marquette_schedule`, all = TRUE),
+ `Providence_schedule`, all = TRUE),
+  `Seton Hall_schedule`, all = TRUE),
+  `St. John's_schedule`, all = TRUE),
+`UConn_schedule`, all = TRUE),
+  `Villanova_schedule`, all = TRUE),
+  `Xavier_schedule`, all = TRUE)
+
+#pac12
+for (i in pac12){
+  assign(paste(i, '_schedule', sep = ""),  gamezoneR::get_team_schedule(i, season = season) %>% filter(is.na(home_total)== FALSE) %>% filter(home %in% power6 & away %in% power6))
+}
+
+pac12_schedule <- multiFull <- merge(merge(merge(merge(merge(merge(merge(merge(merge(merge(merge(
+  `Oregon_schedule`,
+  `Oregon State_schedule`, all = TRUE),
+  `Utah_schedule`, all = TRUE),
+  `Washington_schedule`, all = TRUE),
+  `UCLA_schedule`, all = TRUE),
+  `USC_schedule`, all = TRUE),
+  `Arizona State_schedule`, all = TRUE),
+  `Washington State_schedule`, all = TRUE),
+  `Stanford_schedule`, all = TRUE),
+  `California_schedule`, all = TRUE),
+  `Arizona_schedule`, all = TRUE),
+  `Colorado_schedule`, all = TRUE)
+
+#sec
+for (i in sec){
+  assign(paste(i, '_schedule', sep = ""),  gamezoneR::get_team_schedule(i, season = season) %>% filter(is.na(home_total)== FALSE) %>% filter(home %in% power6 & away %in% power6))
+}
+
+sec_schedule <- multiFull <- merge(merge(merge(merge(merge(merge(merge(merge(merge(merge(merge(merge(merge(
+  `Georgia_schedule`,
+ `Alabama_schedule`, all = TRUE),
+  `Auburn_schedule`, all = TRUE),
+  `Ole Miss_schedule`, all = TRUE),
+  `Tennessee_schedule`, all = TRUE),
+  `Mississippi State_schedule`, all = TRUE),
+  `Florida_schedule`, all = TRUE),
+  `Kentucky_schedule`, all = TRUE),
+`Texas A&M_schedule`, all = TRUE),
+  `LSU_schedule`, all = TRUE),
+  `Arkansas_schedule`, all = TRUE),
+  `South Carolina_schedule`, all = TRUE),
+`Missouri_schedule`, all = TRUE),
+  `Vanderbilt_schedule`, all = TRUE)
+```
+
+```{r Master schedule}
+master_schedule <- multiFull <- merge(merge(merge(merge(merge(
+  bigten_schedule,
+  acc_schedule, all = TRUE),
+  big12_schedule, all = TRUE),
+  bigeast_schedule, all = TRUE),
+  pac12_schedule, all = TRUE),
+  sec_schedule, all = TRUE)
+```
+
+```{r Scrape shot data}
+shot_data_2122 <- purrr::map_df(master_schedule$game_id, 
+              gamezoneR::gamezone_cbb_pbp, sub_parse = F) %>% filter(!is.na(loc_x))
+```
+
+So, as of my initial venture into this subject, there are currently 81,389 shots this season in games between Power 6 teams.
+
+### Comparing NBA and NCAA Shooting Frequencies ###
+
+Cleaning the Glass divides shots into the following 5 categories: at the rim (within 4 feet of basket), short midrange (4 to 14 feet), long midrange (14 to 3 point line), corner 3s (below the break), non-corner 3s (all other 3s).  The collegiate three point line does not have a break in the corners; it is 22 ft 1.75 in all the way around (so...the NBA three is shorter in the corners...quite interesting)
+
+```{r divide shots into shot category by distance and location}
+shot_data_2122  <- shot_data_2122  %>% mutate(shot_type = factor(if_else((loc_y - 5.25)^2 + (25 - loc_x)^2 <= 16, "Rim",if_else((loc_y - 5.25)^2 + (25 - loc_x)^2 <= 196, "Short Midrange", if_else(three_pt == FALSE, "Long Midrange", if_else(loc_y < 16.75, "Corner 3", "Non-Corner 3"))))))
+```
+
+Using gamezoneR's basecourt, we can visualize all the Power 6 vs Power 6 shots by shot type -->
+
+```{r}
+gamezoneR::base_court +
+geom_point(data = shot_data_2122, aes(loc_x, loc_y, color = shot_type), alpha = 0.05) + theme(legend.position = "none")
+```
+
+Two things to note:
+  1. 81,000 plus is a TON of shots
+  2. But, this diagram can help us understand from which spaces on the floor we are concerned with
+
+Now, we want to find the prevalence of each shot type and compare it to the NBA's current season via Cleaning the Glass.
+
+```{r include= FALSE}
+shot_data_2122$shot_type <- factor(shot_data_2122$shot_type, levels = c("Rim", "Short Midrange", "Long Midrange", "Corner 3", "Non-Corner 3"))
+
+stsummary2122 <- shot_data_2122 %>% group_by(shot_type) %>% summarise(freq_NCAA = length(shot_type)/nrow(shot_data_2122))
+
+stsummary2122$freq_NBA <- c(.323, .206, .102, .094, .275)
+
+total_midrange <- stsummary2122 %>% filter(shot_type == 'Short Midrange' | shot_type == 'Long Midrange') %>% summarise(shot_type = 'Total Midrange', freq_NCAA = sum(freq_NCAA), freq_NBA = sum(freq_NBA))
+
+total_threes <- stsummary2122 %>% filter(shot_type == 'Non-Corner 3' | shot_type == 'Corner 3') %>% summarise(shot_type = 'Total 3s', freq_NCAA = sum(freq_NCAA), freq_NBA = sum(freq_NBA))
+
+stsummary2122 <- rbind(stsummary2122[1:3,], total_midrange,stsummary2122[4:5,], total_threes)
+```
+
+```{r NCAA vs NBA table frequency}
+kable(stsummary2122, "html") %>%
+       kable_styling("striped", full_width = F) %>%
+       row_spec(nrow(stsummary2122), bold = TRUE, color = "white", background = "gray") %>% row_spec(nrow(stsummary2122) - 3, bold = TRUE, color = "white", background = "gray")
+```
+
+
+Our initial analysis of shot type frequency is quite interesting for this current season is interesting:
+  * NCAA and NBA teams hoist 3s at virtually the same clip (~37%), making it the largest piece of the shot pie.  Interesting caveat is NCAA teams take a smaller portion of those 3s from the corner.  No break means no reason to hunt a corner 3.
+  * NCAA teams get to the rim more (34.5% vs 32.3).  A likely reason for this is the lack of interior size in college.  Every NBA team has a 7'2'' behemoth to guard the rim, but not many college teams have one.
+  * The most interesting comparison is between NCAA and NBA midrange shooting.  NCAA teams take a much lower frequency on short midrange Js (less than 14 ft) and a slightly higher frequency on long ones.  The reason is likely analytical for NBA teams, and we can investigate.
+
+
+### What about percentages?!? ###
+
+```{r need to transform shot info to binary}
+shot_data_2122 <- shot_data_2122 %>% mutate(shot_outcome_binary = if_else(shot_outcome == 'made', 1, 0))
+```
+
+```{r include = FALSE}
+percentage_summary <- shot_data_2122 %>% group_by(shot_type) %>% summarise(shotpercent_NCAA = mean(shot_outcome_binary))
+
+midrange_summary <- shot_data_2122 %>% filter(shot_type == 'Short Midrange' | shot_type == 'Long Midrange') %>% summarise(shot_type = 'Total Midrange', shotpercent_NCAA = mean(shot_outcome_binary))
+
+three_summary <- shot_data_2122 %>% filter(shot_type == 'Non-Corner 3' | shot_type == 'Corner 3') %>% summarise(shot_type = 'Total 3s', shotpercent_NCAA = mean(shot_outcome_binary))
+
+percentage_summary <- rbind(percentage_summary[1:3,], midrange_summary,percentage_summary[4:5,], three_summary)
+
+percentage_summary$shotpercent_NBA <- c(.647, .423, .409, .419, .382, .344, .354)
+```
+
+```{r NCAA vs NBA table percent}
+kable(percentage_summary, "html") %>%
+       kable_styling("striped", full_width = F) %>%
+       row_spec(nrow(percentage_summary), bold = TRUE, color = "white", background = "gray") %>% row_spec(nrow(percentage_summary) - 3, bold = TRUE, color = "white", background = "blue") %>% row_spec(1, bold = TRUE, color = "white", background = "blue")
+```
+
+A couple things to notice right away:
+  * Well, the pros shoot better from everywhere.  This is to be expected...after all, they are pros for a reason.
+  * However, the gap is HUGE at the rim.  Likely, explained by the increased athleticism in the NBA.
+  * And, the gap is much larger in the midrange (~4.4%) than from 3 (~2%)
+  
+We are going to explore this for the NCAA:
+
+### Why do the pros shoot so much better from midrange? And should NCAA player's ever take midrange shots? ###
+
+ **Explore this topic**
+
+
+### Some Miscellaneous Topics ###
+
+#### Why do NCAA teams shoot less corner 3s when there is an nearly equal efficiency gap between corner and non-corner when compared to the NBA? ####
+
+In short...NCAA player's rely on assisted 3s more than the pros do.
+
+```{r binary for assisted vs unassisted}
+shot_data_2122 <- shot_data_2122 %>% mutate(assisted_binary = if_else(is.na(assist), 0, 1))
+```
+
+```{r}
+percentage_assisted <- shot_data_2122 %>% group_by(shot_type) %>% filter(shot_outcome_binary == 1) %>% summarise(percent_assisted_NCAA = mean(assisted_binary))
+```
+
+```{r}
+kable(percentage_assisted, "html") %>%
+       kable_styling("striped", full_width = F) %>%
+       row_spec(nrow(percentage_assisted)-1, bold = TRUE, color = "white", background = "gray") %>%
+       row_spec(nrow(percentage_assisted), bold = TRUE, color = "white", background = "blue")
+```
+
+It was quite difficult to find the same numbers for the NBA. The best estimate I could find was data collected from 2019 that indicated about 90% of corner 3s and 70% of non-corner 3s were assisted in the NBA.  I'd expect, with the proliferation of step back and off the dribble threes, that the assist percent for non-corner 3s has dropped even further in the NBA.
+
+Corner 3s are hunted in the NBA because they are often assisted and shorter, in the NCAA, nearly 10% more **non-corner threes** are assisted and corner threes are not shorter, hence a slightly smaller portion of corner 3s.
+
+Here are the top assisted and unassisted 3 point bucket getters by total made field goals:
+
+```{r}
+player_tester <- shot_data_2122[c('shooter', 'event_team', 'shot_outcome_binary', 'assisted_binary')] %>% filter(shot_type == 'Non-Corner 3')
+```
+
+```{r}
+player_tester <- player_tester[c('shooter', 'shot_outcome_binary', 'assisted_binary')] %>% filter(shot_outcome_binary == 1)
+```
+
+```{r}
+player_tester <- player_tester %>% group_by('shooter') %>% pivot_wider(names_from = assisted_binary, values_from = shot_outcome_binary, values_fn = sum)
+```
+
+
+### Late shot clock summary
+```{r}
+late_shots <- shot_data_2122 %>% filter(play_length >= 25)
+```
+
+```{r}
+late_shot_summary <- late_shots %>% group_by(shot_type) %>% summarise(freq_late_shots = length(shot_type)/nrow(late_shots), percent_late_shots = mean(shot_outcome_binary))
+
+late_shot_assisted <- late_shots %>% filter(shot_outcome_binary == 1)  %>% group_by(shot_type) %>% summarise(percent_assisted = mean(assisted_binary))
+
+late_shot_combined <- merge(late_shot_summary, late_shot_assisted, by = 'shot_type')
+```
+
+```{r}
+late_shots %>% summarise(Midrange = mean(shot_outcome_binary[shot_type == 'Short Midrange' | shot_type == 'Long Midrange']) * 2, Non_Corner_3 = mean(shot_outcome_binary[shot_type == 'Non-Corner 3']) * 3, Johnny_Davis_Midrange = mean(shot_outcome_binary[shooter == 'Johnny Davis' & (shot_type == 'Short Midrange' | shot_type == 'Long Midrange')]) * 2,
+Izaiah_Brockington_Midrange = mean(shot_outcome_binary[shooter == 'Izaiah Brockington' &  (shot_type == 'Short Midrange' | shot_type == 'Long Midrange')]) * 2, Keve_Aluma_Midrange = mean(shot_outcome_binary[shooter == 'Keve Aluma' &  (shot_type == 'Short Midrange' | shot_type == 'Long Midrange')]) * 2, Collin_Gillespie_Three = mean(shot_outcome_binary[shooter == 'Collin Gillespie' & shot_type == 'Non-Corner 3']) * 3)
+```
+
+```{r}
+late_shots %>% filter(shooter == 'Buddy Boeheim') %>% summarise(PPS = c(mean(shot_outcome_binary[shot_type == 'Short Midrange' | shot_type == 'Long Midrange']) * 2, mean(shot_outcome_binary[shot_type == 'Non-Corner 3']) * 3))
+```
+
+So where is the value in the midrange jumper?  The shot is still necessary for late shot clock situations.  Collegiate offenses less frequently generate amazing looks every possession, late shot clock plays occur often.  A good midrange shooter taking a midrange shot is better on a **points per shot basis** than an average late clock three point shot.  Buddy Boeheim, one of the most prolific three point shooters in college basketball, is shooting horrendously on late shot clock threes and well from midrange.  Collin Gillespie, another prolific three point shooter, is worth about the same late shot clock compared to a great midrange shooter.  My primary hypothesis for this --> a late shot clock midrange is most similar to a normal midrange in comparison to a shot near the rim or from beyond three.  An early three point shot was likely an open or semi-open shot, but a late shot clock three is often heavily contested.  Often times the offensive player dictates the quality of the midrange shot regardless of the defense given to him.  An optimal possesion will always end with a foul or layup, a three is second on that list, but when possesions go awry, and they often do, a midrange bailout might just be your best option.  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
